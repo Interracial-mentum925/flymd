@@ -285,7 +285,7 @@ flyMD 支持通过扩展插件来增强功能。你可以：
 本项目采用 Apache 2.0 许可证，详见 [LICENSE](LICENSE)。
 
 ## 🙏 致谢
-- [MilkDown]（https://milkdown.dev/）
+- [MilkDown](https://milkdown.dev/)
 - [Tauri](https://tauri.app/)
 - [markdown-it](https://github.com/markdown-it/markdown-it)
 - [DOMPurify](https://github.com/cure53/DOMPurify)
