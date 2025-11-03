@@ -398,6 +398,9 @@ struct CheckUpdateResp {
   // Linux 双资产
   asset_linux_appimage: Option<UpdateAssetInfo>,
   asset_linux_deb: Option<UpdateAssetInfo>,
+  // macOS 双资产（Intel / Apple Silicon）
+  asset_macos_x64: Option<UpdateAssetInfo>,
+  asset_macos_arm: Option<UpdateAssetInfo>,
 }
 
 fn norm_ver(v: &str) -> (i64, i64, i64, i64) {
@@ -520,6 +523,8 @@ async fn check_update(_force: Option<bool>, include_prerelease: Option<bool>) ->
   let mut asset_win = None;
   let mut asset_linux_appimage = None;
   let mut asset_linux_deb = None;
+  let mut asset_macos_x64 = None;
+  let mut asset_macos_arm = None;
   if os_tag == "windows" {
     if let Some(a) = match_windows_asset(&latest.assets) {
       asset_win = Some(UpdateAssetInfo{
@@ -562,6 +567,8 @@ async fn check_update(_force: Option<bool>, include_prerelease: Option<bool>) ->
     asset_win,
     asset_linux_appimage,
     asset_linux_deb,
+    asset_macos_x64,
+    asset_macos_arm,
   })
 }
 
@@ -841,4 +848,52 @@ async fn get_platform() -> Result<String, String> {
   {
     Ok("unknown".into())
   }
+}
+
+fn match_macos_assets(assets: &[GhAsset]) -> (Option<&GhAsset>, Option<&GhAsset>) {
+  // 返回 (x64, arm64)
+  let mut x64: Option<&GhAsset> = None;
+  let mut arm: Option<&GhAsset> = None;
+  for a in assets {
+    let n = a.name.to_ascii_lowercase();
+    // 仅考虑 macOS 常见包后缀
+    let is_macos_pkg = n.ends_with(".dmg") || n.ends_with(".pkg") || n.ends_with(".zip");
+    if !is_macos_pkg { continue; }
+    if (n.contains("arm64") || n.contains("aarch64")) && arm.is_none() { arm = Some(a); continue; }
+    if (n.contains("x86_64") || n.contains("x64") || n.contains("amd64")) && x64.is_none() { x64 = Some(a); continue; }
+  }
+  else if os_tag == "macos" {
+    let (x64, arm) = match_macos_assets(&latest.assets);
+    if let Some(a) = x64 {
+      asset_macos_x64 = Some(UpdateAssetInfo{
+        name: a.name.clone(),
+        size: a.size.unwrap_or(0),
+        direct_url: a.browser_download_url.clone(),
+        proxy_url: gh_proxy_url(&a.browser_download_url),
+      });
+    }
+    if let Some(a) = arm {
+      asset_macos_arm = Some(UpdateAssetInfo{
+        name: a.name.clone(),
+        size: a.size.unwrap_or(0),
+        direct_url: a.browser_download_url.clone(),
+        proxy_url: gh_proxy_url(&a.browser_download_url),
+      });
+    }
+  }
+  (x64, arm)
+}
+fn match_macos_assets(assets: &[GhAsset]) -> (Option<&GhAsset>, Option<&GhAsset>) {
+  // 返回 (x64, arm64)
+  let mut x64: Option<&GhAsset> = None;
+  let mut arm: Option<&GhAsset> = None;
+  for a in assets {
+    let n = a.name.to_ascii_lowercase();
+    // 仅考虑 macOS 常见包后缀
+    let is_macos_pkg = n.ends_with(".dmg") || n.ends_with(".pkg") || n.ends_with(".zip");
+    if !is_macos_pkg { continue; }
+    if (n.contains("arm64") || n.contains("aarch64")) && arm.is_none() { arm = Some(a); continue; }
+    if (n.contains("x86_64") || n.contains("x64") || n.contains("amd64")) && x64.is_none() { x64 = Some(a); continue; }
+  }
+  (x64, arm)
 }

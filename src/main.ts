@@ -2242,6 +2242,8 @@ type CheckUpdateResp = {
   assetWin?: UpdateAssetInfo | null
   assetLinuxAppimage?: UpdateAssetInfo | null
   assetLinuxDeb?: UpdateAssetInfo | null
+  assetMacosX64?: UpdateAssetInfo | null
+  assetMacosArm?: UpdateAssetInfo | null
 }
 
 async function openInBrowser(url: string) {
@@ -2340,9 +2342,11 @@ function showUpdateDownloadedOverlay(savePath: string, resp: CheckUpdateResp) {
     return b
   }
   if (resp.assetLinuxAppimage) {
+    mkBtn('下载 AppImage（直连）', () => { void openInBrowser(resp.assetLinuxAppimage!.directUrl) })
     mkBtn('下载 AppImage（代理）', () => { void openInBrowser('https://gh-proxy.com/' + resp.assetLinuxAppimage!.directUrl) })
   }
   if (resp.assetLinuxDeb) {
+    mkBtn('下载 DEB（直连）', () => { void openInBrowser(resp.assetLinuxDeb!.directUrl) })
     mkBtn('下载 DEB（代理）', () => { void openInBrowser('https://gh-proxy.com/' + resp.assetLinuxDeb!.directUrl) })
   }
   mkBtn('前往发布页', () => { void openInBrowser(resp.htmlUrl) })
@@ -2366,11 +2370,12 @@ async function checkUpdateInteractive() {
         let savePath = ''
         {
           const direct = resp.assetWin.directUrl
+          // 优先直连，其次备用代理
           const urls = [
+            direct,
             'https://gh-proxy.com/' + direct,
             'https://cdn.gh-proxy.com/' + direct,
             'https://edgeone.gh-proxy.com/' + direct,
-            direct,
           ]
           let ok = false
           for (const u of urls) {
@@ -2391,6 +2396,41 @@ async function checkUpdateInteractive() {
       }
       return
     }
+    // macOS：自动下载并打开（根据返回的双资产选择）
+    if (resp.assetMacosArm || resp.assetMacosX64) {
+      const a = (resp.assetMacosArm || resp.assetMacosX64) as UpdateAssetInfo
+      const ok = await confirmNative(`发现新版本 ${resp.latest}（当前 ${resp.current}）\n是否立即下载并安装？`, '更新')
+      if (!ok) { upMsg('已取消更新'); return }
+      try {
+        upMsg('正在下载安装包…')
+        let savePath = ''
+        {
+          const direct = a.directUrl
+          const urls = [
+            direct,
+            'https://gh-proxy.com/' + direct,
+            'https://cdn.gh-proxy.com/' + direct,
+            'https://edgeone.gh-proxy.com/' + direct,
+          ]
+          let ok = false
+          for (const u of urls) {
+            try {
+              savePath = await invoke('download_file', { url: u, useProxy: false }) as any as string
+              ok = true
+              break
+            } catch {}
+          }
+          if (!ok) throw new Error('all proxies failed')
+        }
+        upMsg('下载完成，正在打开…')
+        try { await openPath(savePath) } catch { showUpdateDownloadedOverlay(savePath, resp as any) }
+      } catch (e) {
+        upMsg('下载或打开失败，将打开发布页');
+        await openInBrowser(resp.htmlUrl)
+      }
+      return
+    }
+
     // Linux：展示选择
     showUpdateOverlayLinux(resp)
   } catch (e) {
