@@ -651,34 +651,69 @@ async function renderPreviewLight() {
   // 旧所见模式移除：不再重建锚点表
 }
 
-// 供所见 V2 调用：将粘贴/拖拽的图片保存到本地，并返回可写入 Markdown 的路径
+// 供所见 V2 调用：将粘贴/拖拽的图片保存到本地，并返回可写入 Markdown 的路径（自动生成不重复文件名）
 async function saveImageToLocalAndGetPath(file: File, fname: string): Promise<string | null> {
   try {
     const alwaysLocal = await getAlwaysSaveLocalImages()
     // 若未启用直连图床，或启用了“总是保存到本地”，尝试本地保存
     const upCfg = await getUploaderConfig()
-    if (alwaysLocal || !upCfg) {
-      if (isTauriRuntime() && currentFilePath) {
-        const base = currentFilePath.replace(/[\\/][^\\/]*$/, '')
-        const sep = base.includes('\\') ? '\\' : '/'
-        const imgDir = base + sep + 'images'
-        try { await ensureDir(imgDir) } catch {}
-        const dst = imgDir + sep + fname
-        const buf = new Uint8Array(await file.arrayBuffer())
-        await writeFile(dst as any, buf as any)
-        return dst
+    if (!(alwaysLocal || !upCfg)) return null
+
+    // 生成不重复文件名：pasted-YYYYMMDD-HHmmss-rand.ext
+    const guessExt = (): string => {
+      try {
+        const byName = (fname || '').toLowerCase().match(/\.([a-z0-9]+)$/)?.[1]
+        if (byName) return byName
+        const t = (file.type || '').toLowerCase()
+        if (t.includes('png')) return 'png'
+        if (t.includes('jpeg')) return 'jpg'
+        if (t.includes('jpg')) return 'jpg'
+        if (t.includes('gif')) return 'gif'
+        if (t.includes('webp')) return 'webp'
+        if (t.includes('bmp')) return 'bmp'
+        if (t.includes('avif')) return 'avif'
+        if (t.includes('svg')) return 'svg'
+        return 'png'
+      } catch { return 'png' }
+    }
+    const two = (n: number) => (n < 10 ? '0' + n : '' + n)
+    const makeName = () => {
+      const d = new Date()
+      const ts = `${d.getFullYear()}${two(d.getMonth() + 1)}${two(d.getDate())}-${two(d.getHours())}${two(d.getMinutes())}${two(d.getSeconds())}`
+      const rand = Math.random().toString(36).slice(2, 6)
+      return `pasted-${ts}-${rand}.${guessExt()}`
+    }
+    const ensureUniquePath = async (dir: string): Promise<string> => {
+      const sep = dir.includes('\\') ? '\\' : '/'
+      for (let i = 0; i < 50; i++) {
+        const name = makeName()
+        const full = dir.replace(/[\\/]+$/, '') + sep + name
+        try { if (!(await exists(full as any))) return full } catch {}
       }
-      if (isTauriRuntime() && !currentFilePath) {
-        const baseDir = await getDefaultPasteDir()
-        if (baseDir) {
-          const base2 = baseDir.replace(/[\\/]+$/, '')
-          const sep = base2.includes('\\') ? '\\' : '/'
-          try { await ensureDir(base2) } catch {}
-          const dst = base2 + sep + fname
-          const buf = new Uint8Array(await file.arrayBuffer())
-          await writeFile(dst as any, buf as any)
-          return dst
-        }
+      // 极端情况下回退：使用时间戳毫秒
+      const d = Date.now()
+      return dir.replace(/[\\/]+$/, '') + (dir.includes('\\') ? '\\' : '/') + `pasted-${d}.png`
+    }
+
+    const writeTo = async (targetDir: string): Promise<string> => {
+      try { await ensureDir(targetDir) } catch {}
+      const dst = await ensureUniquePath(targetDir)
+      const buf = new Uint8Array(await file.arrayBuffer())
+      await writeFile(dst as any, buf as any)
+      return dst
+    }
+
+    if (isTauriRuntime() && currentFilePath) {
+      const base = currentFilePath.replace(/[\\/][^\\/]*$/, '')
+      const sep = base.includes('\\') ? '\\' : '/'
+      const imgDir = base + sep + 'images'
+      return await writeTo(imgDir)
+    }
+    if (isTauriRuntime() && !currentFilePath) {
+      const baseDir = await getDefaultPasteDir()
+      if (baseDir) {
+        const base2 = baseDir.replace(/[\\/]+$/, '')
+        return await writeTo(base2)
       }
     }
     return null
