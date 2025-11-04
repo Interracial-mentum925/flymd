@@ -2,137 +2,92 @@
 
 [简体中文](README.md) | English
 
-[![Version](https://img.shields.io/badge/version-v0.1.2-blue.svg)](https://github.com/flyhunterl/flymd)
+[![Version](https://img.shields.io/badge/version-v0.1.4-blue.svg)](https://github.com/flyhunterl/flymd)
 [![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-lightgrey.svg)](https://github.com/flyhunterl/flymd)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)](https://github.com/flyhunterl/flymd)
 
-A fast, lightweight, and stable Markdown editor/previewer powered by Tauri.
+A fast, lightweight, and privacy‑friendly Markdown editor powered by Tauri.
 
+Highlights
+- Small and instant: tiny installer, millisecond cold start, one‑click code copy
+- Clean UI: minimalist layout (menubar + editor), distraction‑free
+- Library: folder tree with file management (new/rename/move/delete)
+- Safe preview: local‑only app; DOMPurify sanitizes HTML automatically
+- Image bed: S3/R2 integration; paste/drag to upload and insert URL
+- Full stack: Markdown, KaTeX (LaTeX), Mermaid, HTML preview, highlight.js
+- WYSIWYG: live render while typing (v0.0.6) with improved V2 experience (v0.1.3)
+- Performance: lazy‑loaded renderer/highlighter, pure TypeScript
+- Position memory: remember last read/edit position per file
+- Sync: WebDAV extension with logs and conflict prompts
+- Plugins: extension system; install from GitHub/URL
 
-- Extensions & Plugins: manage built-ins and install community extensions (v0.1.2).
-- WYSIWYG overlay: instant rendering while typing; toggle with `Ctrl+Shift+E`.
-- Solid Preview mode: toggle Edit/Preview with `Ctrl+E`.
-- Full Markdown stack: markdown-it, KaTeX (LaTeX), Mermaid, highlight.js.
-- Safe HTML rendering with DOMPurify; image path auto-fix for Tauri `asset:`.
-- File library sidebar with quick open/rename/move/delete.
-- Drag-and-drop open; PDF inline preview; paste or upload images to S3/R2.
-- Position persistence: restore last caret/scroll position per file.
+Screenshots
+- See the Chinese README for the gallery.
 
+Core Features
+- Edit
+  - Native `<textarea>` with zero‑latency input
+  - WYSIWYG toggle: `Ctrl+W`; auto focus on launch; caret location shown
+  - UTF‑8; shortcuts: `Ctrl+B`/`Ctrl+I`; insert link `Ctrl+K`
+- Read
+  - Toggle Edit/Preview: `Ctrl+E`; quick Preview: `Ctrl+R`
+  - markdown‑it + highlight.js; DOMPurify for safe HTML
+  - External links get `target="_blank"` and `rel="noopener"`
+  - Local images auto‑converted to `asset:` in Tauri; KaTeX & Mermaid support
+- Files
+  - Open (`Ctrl+O`) for .md/.markdown/.txt; Save/Save As/New `Ctrl+S`/`Ctrl+Shift+S`/`Ctrl+N`
+  - Recent (up to 5); unsaved indicator `*` in title bar; unified native dialogs
+  - Drag & drop: open `.md`; drop images to insert markdown
 
-## Screenshots
+Image Upload (S3/R2)
+- Priority
+  - Enabled + configured: upload and insert public URL (no local copy)
+  - Disabled/not configured: save locally (existing doc -> sibling `images/`; unsaved doc -> system Pictures)
+  - Upload failed while enabled: fallback to local save
 
-See the main README for screenshots.
+UI/UX
+- Windows‑style menubar; File/Mode menus with shortcuts
+- Follow system light/dark theme; flicker‑free overlay preview
+- Window state is persisted
 
+Performance
+- Lazy load highlighter and renderer; pure TypeScript; lean event wiring
 
-## Install
+Install
+- Download the latest assets from Releases and run the installer
+- Requirements: Windows 10/11 (x64) / Linux / macOS; WebView2 on Windows
 
-- Download from Releases and run the installer:
-  - Windows: `flymd_0.1.0-fix_x64_setup.exe` (file name may vary per release)
-- Requirements:
-  - Windows 10/11 (x64) or Linux
-  - WebView2 Runtime on Windows (usually preinstalled)
-
-
-## Development
-
-- Prerequisites: Node.js 20+, Rust toolchain for Tauri
-- Commands:
-  - `npm install`
-  - Run web dev server: `npm run dev`
-  - Run Tauri app (dev): `npm run tauri:dev`
-  - Build release: `npm run tauri:build`
-
-
-## Usage Tips
-
-- Toggle Edit/Preview: `Ctrl+E`
-- WYSIWYG overlay: `Ctrl+Shift+E`
-- Insert link: `Ctrl+K` | Bold: `Ctrl+B` | Italic: `Ctrl+I`
-- New/Open/Save/Save As: `Ctrl+N` / `Ctrl+O` / `Ctrl+S` / `Ctrl+Shift+S`
-- Drag a `.md` file onto the window to open; paste an image to insert and upload if configured.
-
-
-## Markdown Features
-
-- markdown-it with `breaks: true` so a single newline becomes `<br>`.
-- KaTeX for inline/block math; tuned to avoid overlap in WYSIWYG view.
-- Mermaid diagrams via ```mermaid` fenced blocks.
-- Safe rendering via DOMPurify, with essential SVG/Math tags allowed.
-
-
-## Extensions
-
-- Manage built-in extensions and install community extensions from GitHub or URLs.
-- Built-in: Image Uploader (S3/R2) settings dialog is integrated; you can open it from Extensions.
-- Install example: Typecho publisher extension (community) can be installed via the installer input using `TGU-HansJack/typecho-publisher-flymd@main`.
-- Open the Extensions panel via the top-right Extensions button.
-## Image Upload (S3/R2)
-
-- Configure your S3/R2 credentials (see Settings > Extensions > Image Uploader).
-- Paste or drag an image to insert. While uploading, a placeholder is shown and then replaced with the final URL.
-- Fallback priority:
-  - Enabled + configured uploader: upload to S3/R2 and insert the public URL (no local copy).
-  - Disabled or not configured: save to a local `images/` folder next to the current document; for unsaved docs, save to the system Pictures directory and insert the absolute/escaped path.
-  - Upload error when enabled: fallback to the local save branch as a safety net.
-- Preview rendering: local paths are resolved via Tauri sset:; if loading fails in dev, automatically falls back to a `data:` URL to keep images visible.
-## Known Behaviors
-
-- In WYSIWYG mode, unclosed ```/~~~ fences and unclosed math blocks are intentionally not rendered until closed, to avoid obstructing input.
-- When an inline `$...$` math is closed, the editor automatically inserts extra newlines to prevent visual overlap with following text.
-
-
-## Shortcuts
-
+Shortcuts
 - `Ctrl+N` New | `Ctrl+O` Open | `Ctrl+S` Save | `Ctrl+Shift+S` Save As
-- `Ctrl+E` Edit/Preview | `Ctrl+Shift+E` WYSIWYG overlay
-- `Ctrl+B` Bold  •  `Ctrl+I` Italic  •  `Ctrl+K` Insert Link
-- `Esc` Close Preview / dialogs
+- `Ctrl+E` Edit/Preview | `Ctrl+R` Quick Preview | `Ctrl+W` Toggle WYSIWYG
+- `Ctrl+B` Bold | `Ctrl+I` Italic | `Ctrl+K` Insert Link | `Esc` Close
 
+Extensions
+- Build your own extensions or install from GitHub/URL
+- Example: Typecho Publisher — https://github.com/TGU-HansJack/typecho-publisher-flymd
 
-## Changelog (v0.1.2)
+Changelog
+- v0.1.4
+  - Sync: add root/dir snapshots to speed up remote scanning
+  - Fix: LaTeX rendering errors in Reading mode; LaTeX global render in WYSIWYG
+  - Fix: no save prompt when closing unsaved docs
+  - Fix: code block formatting in Reading mode
+  - Fix: missing Linux app icon
+- v0.1.3
+  - Refactor: WYSIWYG V2 for better editing experience
+  - Add: save prompts when switching docs; shortcuts `Ctrl+R` (Read) `Ctrl+W` (WYSIWYG)
+  - Change: more flexible library sidebar; multi‑level menus
+  - Fix: add missing macOS update feed
+- v0.1.2
+  - UI: improved extension window/style; richer sync logs and options
+  - Sync: faster scanning; better deletion prompts and recovery
+  - Library: create/delete folders; Fix: print entire document
 
-- UI: Improved extension window and partial extension styles.
-- Sync: Added sync logic options with richer real-time log information.
-- Sync: Optimized scanning logic for faster performance.
-- Sync: Rewrote partial sync logic - when encountering locally deleted files, users are now asked whether to sync delete or download to restore.
-- Library: Added create/delete folder functionality.
-- Fix: Resolved issue where print only captured visible range instead of full document.
+License
+- Apache‑2.0. See LICENSE.
 
-## Changelog (v0.1.1)
+Acknowledgements
+- Tauri, markdown‑it, DOMPurify, highlight.js, KaTeX, Mermaid
 
-- New: Extension list hot update functionality.
-
-## Changelog (v0.0.9)
-
-- New: Extensions system — manage and install extensions. Thanks to contributor [HansJack](https://github.com/TGU-HansJack).
-
-## Changelog (v0.0.8-fix)
-
-- Fix: incorrect update URL caused auto-download failures in some cases.
-- Add: backup proxy mirrors to reduce failures when primary proxy is unavailable.
-## Changelog (v0.0.8)
-
-- Paste images without uploader: saves to a local `images/` folder next to the current document and inserts a relative path (`images/<name>`). If the image already exists, we reference by path (no copy).
-- Unsaved documents: if a default paste directory is configured, pasted images are saved there and the absolute/escaped path is inserted. If not available or write fails, falls back to data URL.
-- Auto fallback: on preview, local paths are rendered via Tauri `asset:`; if loading fails, it automatically falls back to a `data:` URL to keep images visible in dev.
-
-## Changelog (v0.0.7)
-
-- Library: improved file support; customizable sort; filters to hide non-md/markdown/txt/PDF; better UX for open/rename/move/delete.
-- Update: built-in update checker and downloader.
-- File operations: add Trash integration and force remove APIs to improve safety and recovery.
-- Mermaid: add caching of rendered SVG to reduce flicker and speed up repeated renders.
-- Stability and performance improvements.
-
-
-## License
-
-Apache-2.0. See `LICENSE`.
-
-
-## Acknowledgements
-
-- Tauri | markdown-it | DOMPurify | highlight.js | KaTeX | Mermaid
-
-
-
+FAQ (Linux)
+- Arch/empty window troubleshooting: see arch.md
