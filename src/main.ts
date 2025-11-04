@@ -199,7 +199,10 @@ function selectLibraryNode(el: HTMLElement | null, path: string | null, isDir: b
 }
 
 let currentFilePath: string | null = null
-let dirty = false // 是否有未保存更改
+// 全局“未保存更改”标记（供关闭时提示与扩展查询）
+let dirty = false; // 是否有未保存更改（此处需加分号，避免下一行以括号开头被解析为对 false 的函数调用）
+// 暴露一个轻量只读查询函数，避免直接访问变量引起耦合
+(window as any).flymdIsDirty = () => dirty
 
 // 配置存储（使用 tauri store）
 let store: Store | null = null
@@ -4082,23 +4085,58 @@ function bindEvents() {
   try {
     void getCurrentWindow().onCloseRequested(async (event) => {
       if (!dirty) return
-      // 先阻止关闭，再进行异步确认，确保不会直接退出
+
+      // 阻止默认关闭，进行异步确认
       event.preventDefault()
-      // 关闭前尝试保存当前阅读/编辑位置
       try { await saveCurrentDocPosNow() } catch {}
+
+      let shouldExit = false
+      let wantSave = false
+
       try {
-        // 原生确认对话框（不会导致 Explorer/外壳异常）
-        const ok = await ask('当前文件尚未保存，确认退出吗？', { title: '确认退出' })
-        if (ok) {
-          // 使用 destroy 跳过再次触发 CloseRequested，避免二次询问
-          try { await getCurrentWindow().destroy() } catch { /* 忽略 */ }
+        // 第一步：是否保存后退出？
+        const saveThenExit = await ask('检测到当前文档有未保存的更改。是否保存后退出？', { title: '退出确认' })
+        if (saveThenExit) {
+          wantSave = true
+        } else {
+          // 第二步：不保存直接退出？
+          const discard = await ask('不保存更改直接退出？', { title: '退出确认' })
+          shouldExit = !!discard
         }
       } catch (e) {
         // 插件不可用或权限不足时，降级到浏览器 confirm
-        const leave = typeof confirm === 'function' ? confirm('当前文件尚未保存，确认退出吗？') : true
-        if (leave) {
-          try { await getCurrentWindow().destroy() } catch { /* 忽略 */ }
+        const leave = typeof confirm === 'function' ? confirm('当前文件尚未保存，确认退出吗？未保存的更改将丢失。') : false
+        shouldExit = !!leave
+      }
+
+      if (wantSave) {
+        try {
+          if (!currentFilePath) await saveAs()
+          else await saveFile()
+          // 保存成功
+          shouldExit = true
+        } catch (e) {
+          showError('保存失败', e)
+          shouldExit = false
         }
+      }
+
+      if (shouldExit) {
+        // 若启用“关闭前同步”，沿用后台隐藏 + 同步 + 退出的策略
+        try {
+          const cfg = await getWebdavSyncConfig()
+          if (cfg.enabled && cfg.onShutdown) {
+            const win = getCurrentWindow()
+            try { await win.hide() } catch {}
+            try { await webdavSyncNow('shutdown') } catch {}
+            try { await new Promise(r => setTimeout(r, 300)) } catch {}
+            try { await win.destroy() } catch {}
+            return
+          }
+        } catch {}
+
+        // 未启用关闭前同步，直接退出
+        try { await getCurrentWindow().destroy() } catch { try { await getCurrentWindow().close() } catch {} }
       }
     })
   } catch (e) {

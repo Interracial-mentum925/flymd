@@ -1154,9 +1154,16 @@ export async function initWebdavSync(): Promise<void> {
 
     // 关闭前同步 - 改进：阻止关闭，隐藏窗口，后台同步完成后退出
     try {
-      const window = getCurrentWindow()
-      window.onCloseRequested(async (event) => {
+      const appWin = getCurrentWindow()
+      appWin.onCloseRequested(async (event) => {
         try {
+          // 若有未保存更改，交由主入口的关闭询问处理
+          const isDirty = !!((globalThis as any)?.flymdIsDirty?.())
+          if (isDirty) {
+            event.preventDefault()
+            return
+          }
+
           const c = await getWebdavSyncConfig()
           if (c.enabled && c.onShutdown) {
             // 阻止立即关闭
@@ -1167,7 +1174,7 @@ export async function initWebdavSync(): Promise<void> {
 
             // 隐藏窗口到后台
             try {
-              await window.hide()
+              await appWin.hide()
               updateStatus('后台同步中，完成后将自动退出...')
             } catch (e) {
               console.warn('隐藏窗口失败:', e)
@@ -1183,12 +1190,12 @@ export async function initWebdavSync(): Promise<void> {
             try {
               // 短暂延迟确保日志写入完成
               await new Promise(resolve => setTimeout(resolve, 500))
-              await window.destroy()
+              await appWin.destroy()
             } catch (e) {
               console.warn('退出程序失败:', e)
               // 如果 destroy 失败，尝试 close
               try {
-                await window.close()
+                await appWin.close()
               } catch {}
             }
           }
