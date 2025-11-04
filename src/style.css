@@ -590,7 +590,7 @@ html, body { overflow: hidden; }
 
 /* 块级代码 */
 .preview pre { background: var(--code-bg); border: 1px solid var(--code-border); border-radius: 8px; padding: 16px; overflow: auto; -webkit-overflow-scrolling: touch; margin: 12px 0; }
-.preview pre code { background: transparent; color: var(--code-fg); font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 13px; line-height: 1.6; }
+.preview pre code { display: block; background: transparent; color: var(--code-fg); font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 13px; line-height: 1.6; }
 /* 行内代码 */
 .preview :not(pre) > code { background: var(--code-bg); color: var(--code-fg); border: 1px solid var(--code-border); border-radius: 6px; padding: 0 6px; font-size: 0.9em; }
 
@@ -620,15 +620,14 @@ html, body { overflow: hidden; }
   padding-top: 16px;           /* 与 pre 的 padding-top 保持一致，保证首行对齐 */
   box-sizing: border-box;
   color: var(--code-muted);
-  font-size: 12px;
+  font-size: 13px;             /* 与代码字体一致，避免行高基准不同 */
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; /* 行号使用相同字体，避免度量差 */
   font-variant-numeric: tabular-nums; /* 等宽数字，纵向对齐更整齐 */
   text-align: left;
   pointer-events: none;        /* 不挡操作 */
   z-index: 1;                  /* 低于角标/复制按钮 */
 }
-.codebox .code-lnums .ln { display: block; line-height: 1.8; }
-/* 所见模式下行高更高时，同步行号行高 */
-.container.wysiwyg .codebox .code-lnums .ln { line-height: 1.6; }
+.codebox .code-lnums .ln { display: block; line-height: inherit; }
 /* 为行号列让出内边距，避免覆盖代码文本 */
 .codebox pre { padding-left: calc(16px + 3.2em + 0.4em); }
 /* 提升角标/复制按钮层级，避免被行号列覆盖 */
