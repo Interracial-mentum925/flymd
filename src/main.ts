@@ -1225,20 +1225,33 @@ const aboutBtn = document.createElement('div')
       langBtn.className = 'menu-item'
       langBtn.title = t('menu.language')
       langBtn.textContent = '🌍'
-      menubar.appendChild(langBtn)
       // 将“扩展”按钮移到窗口最右侧（紧随文件名标签之后，靠右）
       try {
         const titlebar = document.querySelector('.titlebar') as HTMLDivElement | null
         const extBtn = document.getElementById('btn-extensions') as HTMLDivElement | null
         const fileNameEl = document.querySelector('.titlebar .filename') as HTMLDivElement | null
-        if (titlebar && extBtn) {
-          try { extBtn.remove() } catch {}
-          if (fileNameEl && fileNameEl.parentElement === titlebar) {
-            titlebar.insertBefore(extBtn, fileNameEl.nextSibling)
+          if (titlebar && extBtn) {
+            try { extBtn.remove() } catch {}
+            if (fileNameEl && fileNameEl.parentElement === titlebar) {
+              // 插入扩展按钮在文件名之后
+              titlebar.insertBefore(extBtn, fileNameEl.nextSibling)
+              // 再插入语言图标在扩展按钮之后
+              titlebar.insertBefore(langBtn, extBtn.nextSibling)
+            } else {
+              titlebar.appendChild(extBtn)
+              titlebar.appendChild(langBtn)
+            }
+          } else if (titlebar) {
+            // 兜底：找不到扩展按钮时，将语言图标放在文件名后
+            if (fileNameEl && fileNameEl.parentElement === titlebar) {
+              titlebar.insertBefore(langBtn, fileNameEl.nextSibling)
+            } else {
+              titlebar.appendChild(langBtn)
+            }
           } else {
-            titlebar.appendChild(extBtn)
+            // 再兜底：仍未获取到 titlebar，则临时放回 menubar 末尾
+            menubar.appendChild(langBtn)
           }
-        }
       } catch {}
 }
 const containerEl = document.querySelector('.container') as HTMLDivElement
@@ -1380,7 +1393,7 @@ let _wheelHandlerRef: ((e: WheelEvent)=>void) | null = null
               bodyEl.innerHTML = `
                 <div style="display:flex;flex-direction:column;align-items:center;gap:12px;">
                   <p>${t('about.tagline')}</p>
-                  <img src="${goodImgUrl}" alt="二维码" style="width:320px;height:320px;border-radius:0;object-fit:contain;image-rendering:pixelated;"/>
+                  <img src="${goodImgUrl}" alt="二维码" style="width:320px;height:320px;border-radius:0;object-fit:contain;"/>
                   <div style="text-align:center;">
                     <p style="margin:6px 0 0;color:var(--muted);font-size:12px;">${t('about.license.brief')}</p>
                     <p style="margin:4px 0 0;"><a href="https://github.com/flyhunterl/flymd/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">${t('about.license.link')}</a></p>
@@ -2651,6 +2664,8 @@ async function openFile2(preset?: unknown) {
             <iframe src="${srcUrl}" title="PDF 预览" style="width:100%;height:100%;border:0;" allow="fullscreen"></iframe>
           </div>
         `
+        // 若当前处于所见模式，关闭所见，确保 PDF 预览正常显示
+        try { if (wysiwyg) { await setWysiwygEnabled(false) } } catch {}
         mode = 'preview'
         try { preview.classList.remove('hidden') } catch {}
         try { syncToggleButton() } catch {}
