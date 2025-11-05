@@ -637,8 +637,7 @@ body > .block-menu { display: none !important; }
   text-align: justify;
   text-justify: inter-character;
 }
-.preview pre { background: var(--code-bg); border: 1px solid var(--code-border); padding: 16px; border-radius: 8px; overflow: auto; }
-.preview code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; background: var(--code-bg); border: 1px solid var(--code-border); padding: 2px 6px; border-radius: 4px; }
+/* 预览模式代码样式在后面统一定义，这里暂时保留基础样式 */
 .preview blockquote {
   border-left: 4px solid var(--border-strong);
   margin: 1.2em 0;
@@ -1063,8 +1062,10 @@ html, body { overflow: hidden; }
   user-select: none;
   border-right: 1px solid var(--code-border);
   padding-right: 0.8em;
+  line-height: 1.7;            /* 与代码行高一致 */
+  letter-spacing: 0.02em;      /* 与代码字符间距一致 */
 }
-.codebox .code-lnums .ln { display: block; line-height: 1.7; }
+.codebox .code-lnums .ln { display: block; }
 /* 为行号列让出内边距，避免覆盖代码文本 */
 .codebox pre { padding-left: calc(20px + 3.5em + 0.8em + 1px); }
 /* 提升角标/复制按钮层级，避免被行号列覆盖 */
