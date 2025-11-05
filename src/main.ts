@@ -57,8 +57,8 @@ let mermaidSvgCacheVersion = 0
 let _currentPdfSrcUrl: string | null = null
 // 大纲缓存（Markdown/WYSIWYG）：避免重复重建 DOM
 let _outlineLastSignature = ''
-// PDF 目录缓存：按文件路径缓存解析结果
-const _pdfOutlineCache = new Map<string, Array<{ level: number; title: string; page: number }>>()
+// PDF 目录缓存：按文件路径缓存解析结果与 mtime，用于自动失效
+const _pdfOutlineCache = new Map<string, { mtime: number; items: Array<{ level: number; title: string; page: number }> }>()
 // 所见模式：用于滚动同步的“源位锚点”表
 // 旧所见模式已移除：不再维护锚点表
 
@@ -3106,15 +3106,69 @@ async function renderPdfOutline(outlineEl: HTMLDivElement) {
       logWarn('PDF 目录：读取文件失败', e)
       return
     }
-    // 缓存命中直接渲染
+    // 缓存命中直接渲染（mtime 自动失效）
     try {
       const key = String(currentFilePath || '')
       if (key && _pdfOutlineCache.has(key)) {
-        const items = _pdfOutlineCache.get(key)!
-        outlineEl.innerHTML = items.map(it => `<div class=\"ol-item lvl-${it.level}\" data-page=\"${it.page}\">${it.title}</div>`).join('')
-        bindPdfOutlineClicks(outlineEl)
-        logDebug('PDF 目录：使用缓存', { count: items.length })
-        return
+        // 获取当前 mtime
+        let curMtime = 0
+        try { const st = await stat(currentFilePath as any); const cand = (st as any)?.mtimeMs ?? (st as any)?.mtime ?? (st as any)?.modifiedAt; curMtime = Number(cand) || 0 } catch {}
+        const cached = _pdfOutlineCache.get(key)!
+        if (cached && cached.items && cached.items.length > 0 && cached.mtime === curMtime) {
+          const items = cached.items
+          // 构建大纲（带折叠）并绑定点击
+          // 计算是否有子级（用于折叠/展开，限制到 level<=2）
+          const hasChild = new Map<string, boolean>()
+          for (let i = 0; i < items.length; i++) {
+            const cur = items[i]
+            if (cur.level > 2) continue
+            let child = false
+            for (let j = i + 1; j < items.length; j++) { if (items[j].level > cur.level) { child = true; break } if (items[j].level <= cur.level) break }
+            hasChild.set(`${i}`, child)
+          }
+          const keyCollapse = 'outline-collapsed:' + key
+          let collapsed = new Set<string>()
+          try { const raw = localStorage.getItem(keyCollapse); if (raw) collapsed = new Set(JSON.parse(raw)) } catch {}
+          const saveCollapsed = () => { try { localStorage.setItem(keyCollapse, JSON.stringify(Array.from(collapsed))) } catch {} }
+          outlineEl.innerHTML = items.map((it, idx) => {
+            const tg = (it.level <= 2 && hasChild.get(String(idx))) ? `<span class=\\"ol-tg\\" data-idx=\\"${idx}\\">▾</span>` : `<span class=\\"ol-tg\\"></span>`
+            return `<div class=\\"ol-item lvl-${it.level}\\" data-page=\\"${it.page}\\" data-idx=\\"${idx}\\">${tg}${it.title}</div>`
+          }).join('')
+          // 应用折叠
+          const applyCollapse = () => {
+            try {
+              const nodes = Array.from(outlineEl.querySelectorAll('.ol-item')) as HTMLDivElement[]
+              nodes.forEach(n => n.classList.remove('hidden'))
+              nodes.forEach((n) => {
+                const idx = n.dataset.idx || ''
+                if (!idx || !collapsed.has(idx)) return
+                const m1 = n.className.match(/lvl-(\d)/); const level = parseInt((m1?.[1]||'1'),10)
+                for (let i = (parseInt(idx||'-1',10) + 1); i < nodes.length; i++) {
+                  const m = nodes[i]
+                  const m2 = m.className.match(/lvl-(\d)/); const lv = parseInt((m2?.[1]||'6'),10)
+                  if (lv <= level) break
+                  m.classList.add('hidden')
+                }
+              })
+            } catch {}
+          }
+          outlineEl.querySelectorAll('.ol-tg').forEach((tgEl) => {
+            tgEl.addEventListener('click', (ev) => {
+              ev.stopPropagation()
+              const el = (tgEl as HTMLElement).closest('.ol-item') as HTMLDivElement | null
+              if (!el) return
+              const idx = el.dataset.idx || ''
+              const m1 = el.className.match(/lvl-(\d)/); const level = parseInt((m1?.[1]||'1'),10)
+              if (!idx || level > 2) return
+              if (collapsed.has(idx)) { collapsed.delete(idx); (tgEl as HTMLElement).textContent = '▾' } else { collapsed.add(idx); (tgEl as HTMLElement).textContent = '▸' }
+              saveCollapsed(); applyCollapse()
+            })
+          })
+          bindPdfOutlineClicks(outlineEl)
+          applyCollapse()
+          logDebug('PDF 目录：使用缓存', { count: items.length })
+          return
+        }
       }
     } catch {}
 
@@ -3145,10 +3199,33 @@ async function renderPdfOutline(outlineEl: HTMLDivElement) {
     await walk(outline, 1)
     if (items.length === 0) { outlineEl.innerHTML = '<div class="empty">目录为空</div>'; logWarn('PDF 目录：目录为空'); return }
     // PDF 目录缓存复用
-    // 写入缓存
-    try { const k = String(currentFilePath || ''); if (k) _pdfOutlineCache.set(k, items.slice()) } catch {}
+    // 写入缓存（含 mtime）
+    try {
+      const k = String(currentFilePath || '')
+      if (k) {
+        let curMtime = 0
+        try { const st = await stat(currentFilePath as any); const cand = (st as any)?.mtimeMs ?? (st as any)?.mtime ?? (st as any)?.modifiedAt; curMtime = Number(cand) || 0 } catch {}
+        _pdfOutlineCache.set(k, { mtime: curMtime, items: items.slice() })
+      }
+    } catch {}
 
-    outlineEl.innerHTML = items.map(it => `<div class=\"ol-item lvl-${it.level}\" data-page=\"${it.page}\">${it.title}</div>`).join('')
+    // 构建大纲（带折叠/展开与记忆）
+    const hasChild = new Map<string, boolean>()
+    for (let i = 0; i < items.length; i++) {
+      const cur = items[i]
+      if (cur.level > 2) continue
+      let child = false
+      for (let j = i + 1; j < items.length; j++) { if (items[j].level > cur.level) { child = true; break } if (items[j].level <= cur.level) break }
+      hasChild.set(`${i}`, child)
+    }
+    const keyCollapse = 'outline-collapsed:' + (currentFilePath || '')
+    let collapsed = new Set<string>()
+    try { const raw = localStorage.getItem(keyCollapse); if (raw) collapsed = new Set(JSON.parse(raw)) } catch {}
+    const saveCollapsed = () => { try { localStorage.setItem(keyCollapse, JSON.stringify(Array.from(collapsed))) } catch {} }
+    outlineEl.innerHTML = items.map((it, idx) => {
+      const tg = (it.level <= 2 && hasChild.get(String(idx))) ? `<span class=\"ol-tg\" data-idx=\"${idx}\">▾</span>` : `<span class=\"ol-tg\"></span>`
+      return `<div class=\"ol-item lvl-${it.level}\" data-page=\"${it.page}\" data-idx=\"${idx}\">${tg}${it.title}</div>`
+    }).join('')
     function navigatePdfPage(page) {
       try {
         const iframe = document.querySelector('.pdf-preview iframe')
@@ -3173,7 +3250,38 @@ async function renderPdfOutline(outlineEl: HTMLDivElement) {
         }, 80)
       } catch (e) { logWarn('PDF 目录：导航异常', e) }
     }
+    // 应用折叠
+    const applyCollapse = () => {
+      try {
+        const nodes = Array.from(outlineEl.querySelectorAll('.ol-item')) as HTMLDivElement[]
+        nodes.forEach(n => n.classList.remove('hidden'))
+        nodes.forEach((n) => {
+          const idx = n.dataset.idx || ''
+          if (!idx || !collapsed.has(idx)) return
+          const m1 = n.className.match(/lvl-(\d)/); const level = parseInt((m1?.[1]||'1'),10)
+          for (let i = (parseInt(idx||'-1',10) + 1); i < nodes.length; i++) {
+            const m = nodes[i]
+            const m2 = m.className.match(/lvl-(\d)/); const lv = parseInt((m2?.[1]||'6'),10)
+            if (lv <= level) break
+            m.classList.add('hidden')
+          }
+        })
+      } catch {}
+    }
+    outlineEl.querySelectorAll('.ol-tg').forEach((tgEl) => {
+      tgEl.addEventListener('click', (ev) => {
+        ev.stopPropagation()
+        const el = (tgEl as HTMLElement).closest('.ol-item') as HTMLDivElement | null
+        if (!el) return
+        const idx = el.dataset.idx || ''
+        const m1 = el.className.match(/lvl-(\d)/); const level = parseInt((m1?.[1]||'1'),10)
+        if (!idx || level > 2) return
+        if (collapsed.has(idx)) { collapsed.delete(idx); (tgEl as HTMLElement).textContent = '▾' } else { collapsed.add(idx); (tgEl as HTMLElement).textContent = '▸' }
+        saveCollapsed(); applyCollapse()
+      })
+    })
     bindPdfOutlineClicks(outlineEl)
+    applyCollapse()
   } catch (e) {
     try { outlineEl.innerHTML = '<div class="empty">读取 PDF 目录失败</div>' } catch {}
     logWarn('PDF 目录：异常', e)
