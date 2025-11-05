@@ -1054,7 +1054,7 @@ html, body { overflow: hidden; }
   color: var(--code-muted);
   /* 所有影响行高的属性必须与代码完全一致 */
   font-size: 14px !important;
-  line-height: 1.7 !important; /* 与代码行高一致，避免累积误差 */
+  line-height: 1.8 !important; /* 与代码行高一致(1.8)，避免累积误差 */
   letter-spacing: 0.02em;      /* 与代码字符间距一致，避免累积误差 */
   font-family: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-variant-numeric: tabular-nums; /* 等宽数字，纵向对齐更整齐 */
