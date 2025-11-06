@@ -119,63 +119,62 @@
         const ta = getEditor(); if (!ta) return
         if (ev.target !== ta) return
         if (!isEditMode()) return
-        if (isComposingEv(ev)) return
         const it = (ev as any).inputType || ''
         if (!/insert(Text|CompositionText|FromComposition)/i.test(it)) return
         const data = (ev as any).data as string || ''
+        // 组合输入：除 ~ / ～ 外一律放行给 IME；而 ~ / ～ 允许在 composing 阶段处理，以便识别连击
+        const composing = isComposingEv(ev)
+        const isTildeData = (!!data && (/^~+$/.test(data) || /^～+$/.test(data)))
+        if (composing && !isTildeData) return
         if (!data) return
         const s = ta.selectionStart >>> 0
         const e = ta.selectionEnd >>> 0
         const val = String(ta.value || '')
         // 波浪线（~ / ～）：Markdown 仅有成对的 ~~ 删除线
-        // 规则：单个 ~/～ 不触发补全；连续两个 ~~ 或 ～～（短时间内）触发补全为 "~~~~" 或 "～～～～" 并将光标置于中间
-        // 若存在选区，则变为 "~~选区~~" 或 "～～选区～～"
+        // 规则：单个 ~/～ 不触发补全；输入连续两个 ~~ 或 ～～（短时间内）触发补全为 "~~~~" 或 "～～～～" 并将光标置于中间
         {
           const w: any = window as any
-          if (data === '~~' || data === '~' || data === '～～' || data === '～') {
+          const isAsciiPair = (data === '~~')
+          const isFullPair = (data === '～～')
+          const isAsciiOne = (data === '~')
+          const isFullOne = (data === '～')
+          if (isAsciiPair || isFullPair) {
             ev.preventDefault()
-            // 初始化状态
-            if (w._tildeTimer) { try { clearTimeout(w._tildeTimer) } catch {} w._tildeTimer = null }
-            if (!w._tildeCount) w._tildeCount = 0
-            if (w._tildeCount === 0) { w._tildeSelS = s; w._tildeSelE = e }
-            const isFull = (data === '～～' || data === '～')
-            w._tildeFull = !!isFull
-            w._tildeCount += ((data === '~~' || data === '～～') ? 2 : 1)
-            const commit = () => {
-              try {
-                const s0 = (w._tildeSelS >>> 0) || 0
-                const e0 = (w._tildeSelE >>> 0) || s0
-                const mid = val.slice(s0, e0)
-                ta.selectionStart = s0; ta.selectionEnd = e0
-                if (w._tildeCount >= 2) {
-                  // 双波浪：补全为 ~~(mid)~~ 或空选区为 "~~~~" 并把光标置中
-                  const token = (w._tildeFull ? '～～' : '~~')
-                  const ins = (e0 > s0) ? (token + mid + token) : (token + token)
-                  if (!insertUndoable(ta, ins)) {
-                    ta.value = val.slice(0, s0) + ins + val.slice(e0)
-                  }
-                  const tlen = token.length
-                  if (e0 > s0) {
-                    ta.selectionStart = s0 + tlen; ta.selectionEnd = s0 + tlen + mid.length
-                  } else {
-                    ta.selectionStart = ta.selectionEnd = s0 + tlen
-                  }
-                } else {
-                  // 单个 ~：不补全，仅插入一个 ~
-                  const ch = (w._tildeFull ? '～' : '~')
-                  if (!insertUndoable(ta, ch)) {
-                    ta.value = val.slice(0, s0) + ch + val.slice(e0)
-                  }
-                  ta.selectionStart = ta.selectionEnd = s0 + ch.length
-                }
-                rememberPrev()
-              } finally {
-                w._tildeCount = 0; w._tildeTimer = null; w._tildeFull = false
-              }
+            const token = isFullPair ? '～～' : '~~'
+            const mid = val.slice(s, e)
+            ta.selectionStart = s; ta.selectionEnd = e
+            const ins = (e > s) ? (token + mid + token) : (token + token)
+            if (!insertUndoable(ta, ins)) {
+              ta.value = val.slice(0, s) + ins + val.slice(e)
             }
-            // 若一次输入已包含 "~~"，立即提交；否则等待连击
-            if (data === '~~' || data === '～～') { commit() }
-            else { w._tildeTimer = (setTimeout as any)(commit, 280) }
+            const tlen = token.length
+            if (e > s) { ta.selectionStart = s + tlen; ta.selectionEnd = s + tlen + mid.length }
+            else { ta.selectionStart = ta.selectionEnd = s + tlen }
+            rememberPrev(); return
+          }
+          if (isAsciiOne || isFullOne) {
+            // 第二个 ~/~～：替换上一个相同波浪为成对补全
+            const ch = isFullOne ? '～' : '~'
+            const now = Date.now()
+            const prevCh = (s > 0) ? val.slice(s - 1, s) : ''
+            const lastPos = (w._tildeLastPos ?? -9999) as number
+            const lastAt = (w._tildeLastTime ?? 0) as number
+            const within = (now - lastAt) <= 360
+            if (s === e && s > 0 && prevCh === ch && within && lastPos === s - 1) {
+              ev.preventDefault()
+              const token = ch + ch // "~~" or "～～"
+              const ins = token + token // "~~~~" or "～～～～"
+              ta.selectionStart = s - 1; ta.selectionEnd = s
+              if (!insertUndoable(ta, ins)) {
+                ta.value = val.slice(0, s - 1) + ins + val.slice(s)
+              }
+              const tlen = token.length
+              ta.selectionStart = ta.selectionEnd = (s - 1 + tlen)
+              rememberPrev(); w._tildeLastPos = -1; w._tildeLastTime = 0; return
+            }
+            // 记录第一次 ~ 的位置与时间，放行默认插入
+            w._tildeLastPos = s
+            w._tildeLastTime = now
             return
           }
         }
