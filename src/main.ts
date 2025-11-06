@@ -1,4 +1,4 @@
-import './imePatch'
+﻿import './imePatch'
 /*
 
 
@@ -941,7 +941,7 @@ async function setWysiwygEnabled(enable: boolean) {
     // 旧所见模式已移除：不要再添加 .wysiwyg，否则容器会被隐藏
     if (container) container.classList.remove('wysiwyg')
     // 先进入 loading 状态：不隐藏编辑器，避免空白期
-    if (container && wysiwyg) { container.classList.add('wysiwyg-v2'); container.classList.add('wysiwyg-v2-loading') }
+    if (container && wysiwyg) { mode = 'edit'; container.classList.add('wysiwyg-v2'); container.classList.add('wysiwyg-v2-loading') }
     if (container && !wysiwyg) { container.classList.remove('wysiwyg-v2-loading'); container.classList.remove('wysiwyg-v2') }
   if (wysiwyg) {
       // 优先启用 V2：真实所见编辑视图
@@ -957,7 +957,7 @@ async function setWysiwygEnabled(enable: boolean) {
         // 给 root 一个占位提示，避免用户误以为空白
         try { if (root) root.textContent = '正在加载所见编辑器…' } catch {}
         // 调用 enableWysiwygV2 来创建/更新编辑器（会自动处理清理和重建）
-        await enableWysiwygV2(root!, editor.value, (mdNext) => { try { if (mdNext !== editor.value) { editor.value = mdNext; dirty = true; refreshTitle(); refreshStatus() } } catch {} })
+        const __st = (editor as HTMLTextAreaElement).selectionStart >>> 0; let __mdInit = (editor as HTMLTextAreaElement).value; try { if (__st > 0 && __mdInit[__st-1] === '\n' && (__st < 2 || __mdInit[__st-2] !== '\n')) { const before = __mdInit.slice(0, __st-1); const after = __mdInit.slice(__st-1); if (!/  $/.test(before)) { __mdInit = before + '  ' + after } } } catch {} await enableWysiwygV2(root!, __mdInit, (mdNext) => { try { const _md = String(mdNext || '').replace(/\u2003/g,'&emsp;'); if (_md !== editor.value) { editor.value = _md; dirty = true; refreshTitle(); refreshStatus() } } catch {} })
         wysiwygV2Active = true
         if (container) { container.classList.remove('wysiwyg-v2-loading'); container.classList.add('wysiwyg-v2'); }
         try { if (root) (root as HTMLElement).style.display = 'block' } catch {}
@@ -3138,7 +3138,7 @@ async function switchToPreviewAfterOpen() {
     try {
       const root = document.getElementById('md-wysiwyg-root') as HTMLDivElement | null
       if (root) {
-        await enableWysiwygV2(root, editor.value, (mdNext) => { try { if (mdNext !== editor.value) { editor.value = mdNext; dirty = true; refreshTitle(); refreshStatus() } } catch {} })
+        const __st2 = (editor as HTMLTextAreaElement).selectionStart >>> 0; let __mdInit2 = (editor as HTMLTextAreaElement).value; try { if (__st2 > 0 && __mdInit2[__st2-1] === '\n' && (__st2 < 2 || __mdInit2[__st2-2] !== '\n')) { const before = __mdInit2.slice(0, __st2-1); const after = __mdInit2.slice(__st2-1); if (!/  $/.test(before)) { __mdInit2 = before + '  ' + after } } } catch {} await enableWysiwygV2(root, __mdInit2, (mdNext) => { try { const _md = String(mdNext || '').replace(/\u2003/g,'&emsp;'); if (_md !== editor.value) { editor.value = _md; dirty = true; refreshTitle(); refreshStatus() } } catch {} })
       }
     } catch {}
     try { preview.classList.add('hidden') } catch {}
@@ -4242,14 +4242,14 @@ function showModeMenu() {
   if (!anchor) return
   showTopMenu(anchor, [
     { label: t('mode.edit'), accel: 'Ctrl+E', action: async () => {
-      try { if (wysiwyg) await setWysiwygEnabled(false) } catch {}
+      if (wysiwyg) { try { await setWysiwygEnabled(false) } catch {}; return }
       if (mode !== 'edit') { mode = 'edit'; try { preview.classList.add('hidden') } catch {}; try { editor.focus() } catch {}; try { syncToggleButton() } catch {} }
     } },
        { label: t('mode.read'), accel: 'Ctrl+R', action: async () => {
       mode = 'preview'
       try { preview.classList.remove('hidden') } catch {}
       try { await renderPreview() } catch {}
-      try { if (wysiwyg) await setWysiwygEnabled(false) } catch {}
+      if (wysiwyg) { try { await setWysiwygEnabled(false) } catch {}; return }
       try { syncToggleButton() } catch {}
     } },
     { label: t('mode.wysiwyg'), accel: 'Ctrl+W', action: () => { void setWysiwygEnabled(true) } },
@@ -4480,12 +4480,28 @@ function bindEvents() {
         e.preventDefault()
         const val = String(ta.value || '')
         const start = ta.selectionStart >>> 0; const end = ta.selectionEnd >>> 0
-        const isShift = !!e.shiftKey; const indent = '  '
+        const isShift = !!e.shiftKey; const indent = "&emsp;&emsp;"
         const lineStart = val.lastIndexOf('\n', start - 1) + 1
         const sel = val.slice(lineStart, end)
-        if (start !== end && sel.includes('\n')) {
+        if (start === end) {
+          if (isShift) {
+            if (val.slice(lineStart).startsWith(indent)) {
+              const nv = val.slice(0, lineStart) + val.slice(lineStart + indent.length)
+              ta.value = nv
+              const newPos = Math.max(lineStart, start - indent.length)
+              ta.selectionStart = ta.selectionEnd = newPos
+            }
+          } else {
+            if (!val.slice(lineStart).startsWith(indent)) {
+              const nv = val.slice(0, lineStart) + indent + val.slice(lineStart)
+              ta.value = nv
+              const newPos = start + indent.length
+              ta.selectionStart = ta.selectionEnd = newPos
+            }
+          }
+        } else if (start !== end && sel.includes('\n')) {
           const lines = val.slice(lineStart, end).split('\n')
-          const changed = lines.map((ln) => isShift ? (ln.startsWith(indent) ? ln.slice(indent.length) : (ln.startsWith(' \t') ? ln.slice(1) : (ln.startsWith('\t') ? ln.slice(1) : ln))) : (indent + ln)).join('\n')
+          const changed = lines.map((ln) => isShift ? (ln.startsWith(indent) ? ln.slice(indent.length) : (ln.startsWith(' \t') ? ln.slice(1) : (ln.startsWith('\t') ? ln.slice(1) : ln))) : ((ln.startsWith(indent) ? ln : (indent + ln)))).join('\n')
           const newVal = val.slice(0, lineStart) + changed + val.slice(end)
           const delta = changed.length - (end - lineStart)
           ta.value = newVal; ta.selectionStart = lineStart; ta.selectionEnd = end + delta
@@ -4507,6 +4523,69 @@ function bindEvents() {
       document.addEventListener('input', (e) => { try { const ev: any = e as any; if (ev?.isComposing || /Composition/i.test(String(ev?.inputType || ''))) return; handleInput(e as any) } catch {} }, true)
       document.addEventListener('keydown', (e) => { try { handleKeydown(e) } catch {} }, true)
       document.addEventListener('keydown', (e) => { try { handleTabIndent(e) } catch {} }, true)
+            document.addEventListener('keydown', (e) => {
+        try {
+          const ev = e as KeyboardEvent
+          if (ev.key !== 'Tab' || ev.ctrlKey || ev.metaKey || !wysiwygV2Active) return
+          const tgt = e.target as HTMLElement | null
+          const rootEl = document.getElementById('md-wysiwyg-root')
+          if (!rootEl || !tgt || !rootEl.contains(tgt)) return
+          ev.preventDefault(); try { ev.stopPropagation() } catch {} ; try { (e as any).stopImmediatePropagation && (e as any).stopImmediatePropagation() } catch {}
+
+          const em = '&emsp;&emsp;'
+          const sel = window.getSelection()
+          // 反缩进：Shift+Tab 删除光标前一组，或当前段落行首一组
+          if (ev.shiftKey) {
+            try {
+              if (sel && sel.rangeCount > 0) {
+                const r = sel.getRangeAt(0)
+                // 删除紧邻光标前的实体
+                if (r.startContainer && r.startContainer.nodeType === 3) {
+                  const tn = r.startContainer as Text
+                  const off = r.startOffset >>> 0
+                  const need = em.length
+                  if (off >= need && tn.data.slice(off - need, off) === em) {
+                    tn.deleteData(off - need, need)
+                    const rr = document.createRange(); rr.setStart(tn, off - need); rr.collapse(true)
+                    sel.removeAllRanges(); sel.addRange(rr)
+                    return
+                  }
+                }
+                // 尝试删除当前块的行首实体
+                const block = (tgt.closest('p,div,li,h1,h2,h3,h4,h5,h6,blockquote,pre') as HTMLElement) || (rootEl as HTMLElement)
+                if (block && block.firstChild && block.firstChild.nodeType === 3) {
+                  const t0 = (block.firstChild as Text)
+                  if ((t0.data || '').startsWith(em)) {
+                    t0.deleteData(0, em.length)
+                    const rr = document.createRange(); rr.setStart(t0, 0); rr.collapse(true)
+                    sel?.removeAllRanges(); sel?.addRange(rr)
+                  }
+                }
+              }
+            } catch {}
+            return
+          }
+
+          // 正向缩进：若当前段落行首已是缩进，则不重复；否则插入一组
+          try {
+            if (sel && sel.rangeCount > 0) {
+              const r = sel.getRangeAt(0)
+              const block = (tgt.closest('p,div,li,h1,h2,h3,h4,h5,h6,blockquote,pre') as HTMLElement) || (rootEl as HTMLElement)
+              const already = (() => { try { const fc = block?.firstChild; return (fc && fc.nodeType === 3 && (fc as Text).data.startsWith(em)) } catch { return false } })()
+              if (already) return
+            }
+          } catch {}
+
+          let ok = false
+          try { ok = document.execCommand('insertText', false, em) } catch {}
+          if (!ok && sel && sel.rangeCount > 0) {
+            const r = sel.getRangeAt(0)
+            r.deleteContents()
+            r.insertNode(document.createTextNode(em))
+            try { sel.removeAllRanges(); const rr = document.createRange(); rr.setStart(r.endContainer, r.endOffset); rr.collapse(true); sel.addRange(rr) } catch {}
+          }
+        } catch {}
+      }, true)
     } catch {}
   }
   // 全局错误捕获
@@ -4809,12 +4888,28 @@ function bindEvents() {
         const start = ta.selectionStart >>> 0
         const end = ta.selectionEnd >>> 0
         const isShift = !!e.shiftKey
-        const indent = '  ' // 2 空格
+        const indent = "&emsp;&emsp;" // 使用 HTML 实体 &emsp;&emsp; 模拟缩进，避免触发代码块
         // 选区起始行与结束行的起始偏移
         const lineStart = val.lastIndexOf('\n', start - 1) + 1
         const lineEndBoundary = val.lastIndexOf('\n', Math.max(end - 1, 0)) + 1
         const sel = val.slice(lineStart, end)
-        if (start !== end && sel.includes('\n')) {
+        if (start === end) {
+          if (isShift) {
+            if (val.slice(lineStart).startsWith(indent)) {
+              const nv = val.slice(0, lineStart) + val.slice(lineStart + indent.length)
+              ta.value = nv
+              const newPos = Math.max(lineStart, start - indent.length)
+              ta.selectionStart = ta.selectionEnd = newPos
+            }
+          } else {
+            if (!val.slice(lineStart).startsWith(indent)) {
+              const nv = val.slice(0, lineStart) + indent + val.slice(lineStart)
+              ta.value = nv
+              const newPos = start + indent.length
+              ta.selectionStart = ta.selectionEnd = newPos
+            }
+          }
+        } else if (start !== end && sel.includes('\n')) {
           // 多行：逐行缩进或反缩进
           const lines = val.slice(lineStart, end).split('\n')
           const changed = lines.map((ln) => {
@@ -4824,7 +4919,7 @@ function bindEvents() {
               if (ln.startsWith('\t')) return ln.slice(1)
               return ln
             } else {
-              return indent + ln
+              return (ln.startsWith(indent) ? ln : indent + ln)
             }
           }).join('\n')
           const newVal = val.slice(0, lineStart) + changed + val.slice(end)
@@ -5025,7 +5120,7 @@ function bindEvents() {
       e.preventDefault();
       try { e.stopPropagation() } catch {}
       try { (e as any).stopImmediatePropagation && (e as any).stopImmediatePropagation() } catch {}
-      try { if (wysiwyg) await setWysiwygEnabled(false) } catch {}
+      if (wysiwyg) { try { await setWysiwygEnabled(false) } catch {}; return }
       await toggleMode();
       return
     }
