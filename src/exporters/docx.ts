@@ -65,7 +65,7 @@ async function fetchRemoteAsDataUrl(url: string): Promise<string> {
     const bytes = new Uint8Array(resp.data as ArrayBuffer)
     // 解析 mime
     let mime = 'application/octet-stream'
-    try { const ct = String(resp.headers?.['content-type'] || resp.headers?.['Content-Type'] || ''); if (ct) mime = ct.split(';')[0].trim() } catch {}
+    try { const ct = String((resp as any).headers?.['content-type'] || (resp as any).headers?.['Content-Type'] || ''); if (ct) mime = ct.split(';')[0].trim() } catch {}
     if (!/^image\//i.test(mime)) {
       const m = (url || '').toLowerCase().match(/\.([a-z0-9]+)(?:\?|#|$)/)
       switch (m?.[1]) {
@@ -171,6 +171,8 @@ async function svgToPngDataUrl(svgEl: SVGElement): Promise<string> {
         img.src = url
       })
       return dataUrl
+    } catch (e) {
+      try { return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr) } catch { return '' }
     } finally {
       URL.revokeObjectURL(url)
     }
@@ -183,16 +185,16 @@ async function svgToPngDataUrl(svgEl: SVGElement): Promise<string> {
 async function preprocessElementForDocx(el: HTMLElement): Promise<string> {
   const clone = el.cloneNode(true) as HTMLElement
 
-  // 1) SVG -> PNG IMG
-  const svgs = Array.from(el.querySelectorAll('svg')) as SVGElement[]
-  if (svgs.length) {
-    const dataList = await Promise.all(svgs.map(svgToPngDataUrl))
-    const cloneSvgs = Array.from(clone.querySelectorAll('svg')) as Element[]
-    for (let i = 0; i < cloneSvgs.length && i < dataList.length; i++) {
+  // 1) SVG -> PNG IMG（失败则用 SVG dataURL）
+  try {
+    const svgsSrc = Array.from(el.querySelectorAll('svg')) as SVGElement[]
+    const dataList = await Promise.all(svgsSrc.map(svgToPngDataUrl))
+    const svgsClone = Array.from(clone.querySelectorAll('svg')) as Element[]
+    for (let i = 0; i < svgsClone.length && i < dataList.length; i++) {
       const url = dataList[i]
       const img = document.createElement('img')
       if (url) img.src = url
-      const srcSvg = cloneSvgs[i] as SVGElement
+      const srcSvg = svgsClone[i] as SVGElement
       const vb = srcSvg.getAttribute('viewBox') || ''
       const w = srcSvg.getAttribute('width')
       const h = srcSvg.getAttribute('height')
@@ -205,40 +207,58 @@ async function preprocessElementForDocx(el: HTMLElement): Promise<string> {
       }
       srcSvg.replaceWith(img)
     }
-  }
+  } catch {}
 
-  // 2) IMG src -> dataURL
+  // 2) IMG src -> dataURL，设置宽高约束
   const imgs = Array.from(clone.querySelectorAll('img')) as HTMLImageElement[]
   for (const img of imgs) {
     try {
       const cur = img.getAttribute('src') || ''
-      if (/^data:/i.test(cur)) continue
-      const abs = img.getAttribute('data-abs-path') || ''
-      const raw = img.getAttribute('data-raw-src') || cur
-      let dataUrl = ''
-      if (abs) dataUrl = await readLocalAsDataUrl(abs)
-      if (!dataUrl && /^https?:/i.test(raw)) dataUrl = await fetchRemoteAsDataUrl(raw)
-      if (!dataUrl && /^asset:/i.test(cur)) {
-        // 无法直接读取 asset:
-      } else if (!dataUrl && !/^data:/i.test(cur)) {
-        try {
-          const r = await fetch(cur, { mode: 'cors' })
-          const blob = await r.blob()
-          dataUrl = await new Promise<string>((resolve, reject) => {
-            const fr = new FileReader()
-            fr.onerror = () => reject(fr.error || new Error('读取失败'))
-            fr.onload = () => resolve(String(fr.result || ''))
-            fr.readAsDataURL(blob)
-          })
-        } catch {}
+      if (!/^data:/i.test(cur)) {
+        const abs = img.getAttribute('data-abs-path') || ''
+        const raw = img.getAttribute('data-raw-src') || cur
+        let dataUrl = ''
+        if (abs) dataUrl = await readLocalAsDataUrl(abs)
+        if (!dataUrl && /^https?:/i.test(raw)) dataUrl = await fetchRemoteAsDataUrl(raw)
+        if (!dataUrl && !/^data:/i.test(cur)) {
+          try {
+            const r = await fetch(cur, { mode: 'cors' })
+            const blob = await r.blob()
+            dataUrl = await new Promise<string>((resolve, reject) => {
+              const fr = new FileReader()
+              fr.onerror = () => reject(fr.error || new Error('读取失败'))
+              fr.onload = () => resolve(String(fr.result || ''))
+              fr.readAsDataURL(blob)
+            })
+          } catch {}
+        }
+        if (dataUrl) img.src = dataUrl
       }
-      if (dataUrl) img.src = dataUrl
-      img.style.maxWidth = '100%'
-      img.style.height = 'auto'
+      // 计算尺寸并约束到页宽内（约 700px）
+      const maxPx = 700
+      await new Promise<void>((resolve) => {
+        try {
+          const temp = new Image()
+          temp.onload = () => {
+            try {
+              const w = temp.naturalWidth || temp.width || 1
+              const h = temp.naturalHeight || temp.height || 1
+              const ratio = w > 0 ? Math.min(1, maxPx / w) : 1
+              const nw = Math.max(1, Math.round(w * ratio))
+              const nh = Math.max(1, Math.round(h * ratio))
+              img.setAttribute('width', String(nw))
+              img.setAttribute('height', String(nh))
+            } catch {}
+            resolve()
+          }
+          temp.onerror = () => resolve()
+          temp.src = img.getAttribute('src') || ''
+        } catch { resolve() }
+      })
     } catch (e) { console.warn('处理 IMG 失败', e) }
   }
 
-  // 3) 注入基础样式
+  // 3) 注入基础样式（html-docx-js 对 style 支持有限，仍保留以兼容）
   const style = document.createElement('style')
   style.textContent = `
     .preview-body img, img { max-width: 100% !important; height: auto !important; }
