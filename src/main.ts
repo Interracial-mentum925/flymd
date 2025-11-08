@@ -1715,7 +1715,7 @@ wysiwygCaretEl.id = 'wysiwyg-caret'
             `
           }
           const aboutTitle = about.querySelector('#about-title') as HTMLDivElement | null
-          if (aboutTitle) aboutTitle.textContent = `${t('about.title')} flyMD v${APP_VERSION}`
+          if (aboutTitle) aboutTitle.textContent = `${t('about.title')} FlyMD v${APP_VERSION}`
           const aboutClose = about.querySelector('#about-close') as HTMLButtonElement | null
           if (aboutClose) { aboutClose.textContent = '×'; aboutClose.title = t('about.close') }
           // 覆盖关于内容：移除快捷键，加入离线二维码与许可说明
