@@ -2,6 +2,12 @@
 
 [简体中文](ROADMAP.md) | [English](ROADMAP.en.md)
 
+## Update v0.2.0
+- Added: Theme and background color customization/extension API
+- Added: Image hosting conversion & compression, with on/off switch and quality controls
+- Improved: Added background color to Reading mode to visually distinguish it from Edit mode
+- Improved: Image hosting uploads switched to WebP format to better suit network usage
+
 ## Update v0.1.9
 - Added: Drag documents in the library to move between folders
 - Added: In Chinese IME, typing two ￥/¥ in a row maps to $$ (edit mode only)
