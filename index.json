@@ -24,6 +24,19 @@
         "ref": "https://raw.githubusercontent.com/flyhunterl/flymd/main/public/plugins/wordcount/manifest.json",
         "type": "manifest"
       }
+    },
+    {
+      "homepage": "https://github.com/flyhunterl/flymd",
+      "name": "AI 写作助手",
+      "description": "多供应商 AI 写作助手（OpenAI 兼容），支持侧栏/浮窗多种会话模式",
+      "author": "飞速MarkDown",
+      "id": "ai-assistant",
+      "featured": true,
+      "rank": 1,
+      "install": {
+        "ref": "https://raw.githubusercontent.com/flyhunterl/flymd/main/public/plugins/ai-assistant/manifest.json",
+        "type": "manifest"
+      }
     }
   ]
 }
