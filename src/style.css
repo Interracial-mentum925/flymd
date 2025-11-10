@@ -841,9 +841,12 @@ body > .block-menu { display: none !important; }
   border: 1px solid rgba(255,255,255,0.25);
   color: #fff;
   z-index: 2;
-  pointer-events: auto;
+  pointer-events: none;
   backdrop-filter: blur(2px);
+  opacity: 0;
+  transition: opacity .15s ease;
 }
+.mmd-figure:hover .mmd-tools { opacity: 1; pointer-events: auto; }
 .mmd-tools .tools-row { display: inline-flex; gap: 4px; justify-content: flex-end; }
 .mmd-tools button {
   min-width: 20px; height: 20px;
