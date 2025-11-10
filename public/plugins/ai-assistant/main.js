@@ -24,6 +24,7 @@ let __AI_SESSION__ = { id: '', name: '默认会话', messages: [], docHash: '', 
 let __AI_DB__ = null // { byDoc: { [hash]: { title, activeId, items:[{id,name,created,updated,messages:[]}] } } }
 let __AI_SENDING__ = false
 let __AI_LAST_REPLY__ = ''
+let __AI_TOGGLE_LOCK__ = false
 
 // ========== 工具函数 ==========
 async function loadCfg(context) {
@@ -474,15 +475,10 @@ async function mountWindow(context){
 }
 
 async function toggleWindow(context){
+  if (__AI_TOGGLE_LOCK__) return
+  __AI_TOGGLE_LOCK__ = true; setTimeout(() => { __AI_TOGGLE_LOCK__ = false }, 250)
   let el = elById('ai-assist-win')
-  if (!el) {
-    el = await mountWindow(context)
-    // 首次创建：直接显示并初始化
-    el.style.display = 'block'
-    setDockPush(true)
-    await ensureSessionForDoc(context); await refreshHeader(context)
-    return
-  }
+  if (!el) { el = await mountWindow(context); el.style.display = 'block'; setDockPush(true); await ensureSessionForDoc(context); await refreshHeader(context); return }
   const visible = (() => { try { return WIN().getComputedStyle(el).display !== 'none' } catch { return el.style.display !== 'none' } })()
   el.style.display = visible ? 'none' : 'block'
   if (!visible) { setDockPush(true); await ensureSessionForDoc(context); await refreshHeader(context) } else { setDockPush(false) }
